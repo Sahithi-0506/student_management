@@ -114,8 +114,9 @@ def main():
                 print("❌ Student not found.")
 
         elif choice == "5":
-            print("⚠ Report generation not fully implemented yet.")
-            # We will implement reports.py later
+            from reports import generate_reports
+            generate_reports()
+
 
         elif choice == "6":
             import_file = input("Enter import CSV file path: ")

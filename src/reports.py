@@ -1,47 +1,62 @@
 # src/reports.py
-import csv, os
+
+import os
+import pandas as pd
 from storage import load_students
 
-REPORTS_DIR = "data/reports/"
+REPORTS_FOLDER = os.path.join("data", "reports")
+os.makedirs(REPORTS_FOLDER, exist_ok=True)
 
-def grade(final_marks):
-    if final_marks >= 85: return "A"
-    elif final_marks >= 70: return "B"
-    elif final_marks >= 50: return "C"
-    else: return "D"
 
-def generate_report(branch, year):
-    students = [s for s in load_students() if s.branch == branch and s.year == year]
+def calculate_grade(final_marks):
+    """Simple grade calculation"""
+    if final_marks >= 85:
+        return "A"
+    elif final_marks >= 70:
+        return "B"
+    elif final_marks >= 50:
+        return "C"
+    else:
+        return "D"
 
+
+def generate_reports():
+    students = load_students()
     if not students:
-        print("No students found for this branch/year")
+        print("No students available to generate reports.")
         return
 
-    total = len(students)
-    avg = sum(s.final for s in students) / total
-    highest = max(s.final for s in students)
-    lowest = min(s.final for s in students)
+    # Convert to DataFrame
+    df = pd.DataFrame([s.to_dict() for s in students])
 
-    grade_counts = {"A":0,"B":0,"C":0,"D":0}
-    for s in students:
-        grade_counts[grade(s.final)] += 1
+    # Add Grade column
+    df["Grade"] = df["Final_Marks"].apply(calculate_grade)
 
-    # print in console
-    print(f"\nReport for {branch} Year {year}")
-    print(f"Total Students: {total}")
-    print(f"Average Marks: {avg:.2f}")
-    print(f"Highest: {highest}, Lowest: {lowest}")
-    print("Grades:", grade_counts)
+    # Group by Branch and Year
+    groups = df.groupby(["Branch", "Year"])
 
-    # save to CSV
-    os.makedirs(REPORTS_DIR, exist_ok=True)
-    file_path = os.path.join(REPORTS_DIR, f"report_{branch}_{year}.csv")
-    with open(file_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Metric", "Value"])
-        writer.writerow(["Total Students", total])
-        writer.writerow(["Average Marks", round(avg,2)])
-        writer.writerow(["Highest Marks", highest])
-        writer.writerow(["Lowest Marks", lowest])
-        for g, cnt in grade_counts.items():
-            writer.writerow([f"Grade {g}", cnt])
+    for (branch, year), group in groups:
+        total = len(group)
+        avg = group["Final_Marks"].mean()
+        highest = group["Final_Marks"].max()
+        lowest = group["Final_Marks"].min()
+
+        grade_counts = group["Grade"].value_counts().to_dict()
+
+        # Prepare metrics
+        report_data = [
+            {"Metric": "Total Students", "Value": total},
+            {"Metric": "Average Marks", "Value": round(avg, 2)},
+            {"Metric": "Highest Marks", "Value": highest},
+            {"Metric": "Lowest Marks", "Value": lowest},
+            {"Metric": "Grade A", "Value": grade_counts.get("A", 0)},
+            {"Metric": "Grade B", "Value": grade_counts.get("B", 0)},
+            {"Metric": "Grade C", "Value": grade_counts.get("C", 0)},
+            {"Metric": "Grade D", "Value": grade_counts.get("D", 0)},
+        ]
+
+        # Save to CSV
+        report_file = os.path.join(REPORTS_FOLDER, f"report_{branch}_{year}.csv")
+        pd.DataFrame(report_data).to_csv(report_file, index=False)
+
+        print(f"✅ Report generated: {report_file}")
