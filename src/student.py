@@ -1,17 +1,19 @@
 # src/student.py
+
 class Student:
-    def __init__(self, roll_no, name, branch, year, gender, age, attendance, mid1, mid2, quiz, final):
-        self.roll_no = int(roll_no)  # primary key
-        self.name = name.strip()
-        self.branch = branch.strip().upper()
-        self.year = int(year)
-        self.gender = gender.strip().upper()
-        self.age = int(age)
-        self.attendance = float(attendance)
-        self.mid1 = float(mid1)
-        self.mid2 = float(mid2)
-        self.quiz = float(quiz)
-        self.final = float(final)
+    def __init__(self, Roll_No, Name, Branch, Year, Gender, Age, Attendance, Mid1, Mid2, Quiz, Final):
+        # Convert and store values
+        self.roll_no = int(Roll_No)  # primary key
+        self.name = Name.strip()
+        self.branch = Branch.strip().upper()
+        self.year = int(Year)
+        self.gender = Gender.strip().upper()
+        self.age = int(Age)
+        self.attendance = float(Attendance)
+        self.mid1 = float(Mid1)
+        self.mid2 = float(Mid2)
+        self.quiz = float(Quiz)
+        self.final = float(Final)
 
         # Validation rules
         if not (0 <= self.attendance <= 100):
@@ -20,7 +22,7 @@ class Student:
             raise ValueError("Marks out of allowed range")
 
     def to_dict(self):
-        """Convert to dictionary for CSV writing"""
+        """Convert to dictionary for CSV writing (with same headers as file)"""
         return {
             "Roll_No": self.roll_no,
             "Name": self.name,
