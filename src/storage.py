@@ -19,7 +19,7 @@ def row_to_student(row):
             Year=row["Year"],
             Gender=row["Gender"],
             Age=row["Age"],
-            Attendance=row["Attendance_%"],   # map CSV → Python arg
+            Attendance=row["Attendance_%"],
             Mid1=row["Mid1_Marks"],
             Mid2=row["Mid2_Marks"],
             Quiz=row["Quiz_Marks"],
@@ -61,6 +61,31 @@ def save_students(students):
             writer.writerow(s.to_dict())
 
 
+def add_student(student):
+    """Add a new student to the CSV"""
+    students = load_students()
+    # Check duplicate roll_no
+    if any(s.roll_no == student.roll_no for s in students):
+        raise ValueError(f"Student with Roll_No {student.roll_no} already exists")
+
+    students.append(student)
+    save_students(students)
+
+
+def update_student(roll_no, updated_data):
+    """Update student record by roll_no"""
+    students = load_students()
+    for s in students:
+        if s.roll_no == roll_no:
+            # Update allowed fields
+            for key, value in updated_data.items():
+                if hasattr(s, key):
+                    setattr(s, key, value)
+            save_students(students)
+            return True
+    return False
+
+
 def delete_student(students, roll_no):
     """Delete a student by roll_no and save to deleted file"""
     for s in students:
@@ -79,5 +104,36 @@ def delete_student(students, roll_no):
                 if f.tell() == 0:
                     writer.writeheader()
                 writer.writerow(s.to_dict())
+            save_students(students)
             return True
     return False
+
+
+def bulk_import(import_file):
+    """Import multiple students from another CSV, log errors if any"""
+    students = load_students()
+    errors = []
+
+    with open(import_file, mode="r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                student = row_to_student(row)
+                if student:
+                    # check duplicate
+                    if any(s.roll_no == student.roll_no for s in students):
+                        raise ValueError(f"Duplicate Roll_No {student.roll_no}")
+                    students.append(student)
+                else:
+                    errors.append(row)
+            except Exception:
+                errors.append(row)
+
+    save_students(students)
+
+    # Write errors
+    if errors:
+        with open(IMPORT_ERRORS_FILE, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=reader.fieldnames)
+            writer.writeheader()
+            writer.writerows(errors)
